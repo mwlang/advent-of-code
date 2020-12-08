@@ -9,7 +9,7 @@ end
 
 class EveryoneGroup < AllInGroup
   def initialize data
-    @answers = data.reduce(data.join.chars.uniq){|a, d| a & d.chars.uniq}
+    @answers = data.reduce(data.join.chars.uniq){|a, d| a & d.chars}
   end
 end
 
