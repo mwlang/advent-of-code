@@ -1,5 +1,5 @@
 SEAT_CHART = {"." => nil, "L" => 0, "#" => 1}
-VECTOR = [[-1,-1], [0,-1], [1,-1], [-1,0], [1, 0],  [-1, 1], [0, 1], [1, 1]]
+NEIGHBORS = [[-1,-1], [0,-1], [1,-1],   [-1,0], [1, 0],   [-1, 1], [0, 1], [1, 1]]
 
 class Lobby
   attr_reader :seats
@@ -17,7 +17,7 @@ class Lobby
   end
 
   def in_range? x, y
-    x && y && x.between?(0, @width - 1) && y.between?(0, @height - 1)
+    x.between?(0, @width - 1) && y.between?(0, @height - 1)
   end
 
   def seat x, y, source
@@ -31,12 +31,12 @@ class Lobby
 
   def adjacent_seats source, index
     x, y = index % @width, index / @width
-    VECTOR.map{|dx, dy| seat(x + dx, y + dy, source)}.compact
+    NEIGHBORS.map{|dx, dy| seat(x + dx, y + dy, source)}.compact
   end
 
   def line_of_sight_seats source, index
     x, y = [index % @width, index / @width]
-    VECTOR.map{|dx, dy| seat_in_sight(x + dx, y + dy, dx, dy, source)}.compact
+    NEIGHBORS.map{|dx, dy| seat_in_sight(x + dx, y + dy, dx, dy, source)}.compact
   end
 
   def occupied
