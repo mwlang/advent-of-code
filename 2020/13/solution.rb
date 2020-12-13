@@ -5,6 +5,7 @@ class Bus
     @id = id
     @track = track
   end
+  alias :mod :id
 
   def line
     id - track
@@ -28,10 +29,9 @@ end
 # Chinese Remainder System is the Fortune Cookie you're looking for.
 def solution_matrix(buses)
   buses.map do |bus|
-    mod = bus.id
     remainder = bus.line
-    remainder += mod while (remainder < 0)
-    [mod, remainder]
+    remainder += bus.mod while (remainder < 0)
+    [bus.mod, remainder]
   end
 end
 
