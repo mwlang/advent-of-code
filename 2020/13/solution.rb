@@ -1,12 +1,15 @@
 class Bus
   attr_reader :id, :track
+
   def initialize id, track
     @id = id
     @track = track
   end
+
   def line
     id - track
   end
+
   def stop?(start)
     ((start + track) % id).zero?
   end
@@ -14,7 +17,7 @@ end
 
 def shuttle_search data
   buses = data.reject(&:zero?)
-  start = data.shift
+  start = data.shift # <= side effect: Part Two doesn't need first line.
 
   schedule = buses.map{|bus| [bus - (start % bus), bus]}.sort_by{|sb| sb[0]}
   puts schedule[0][0] * schedule[0][1]
@@ -33,9 +36,6 @@ def solution_matrix(buses)
 end
 
 def busitary_alignment_horiscope data
-  # Forget about the first line of input
-  data.shift
-
   # Gimme an array of Buses with their line in the rotation noted.
   schedule = data.map
     .with_index{ |bus, i| bus.zero? ? [0, i] : [bus, i] }
