@@ -10,6 +10,7 @@
 # So, after the starting numbers, each turn results in that player speaking aloud
 # either 0 (if the last number is new) or an age (if the last number is a
 # repeat).
+
 def play(starting, turns)
   collection = Hash(Int32,Array(Int32)).new
   numbers = starting.map_with_index{ |v,t| collection[v] = [t + 1]}
@@ -34,4 +35,4 @@ end
 
 puts play [0,3,6], 10
 puts play [2,20,0,4,1,17], 2020
-puts play [2,20,0,4,1,17], 30000000
+puts play [2,20,0,4,1,17], 30_000_000
