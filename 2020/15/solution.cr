@@ -12,25 +12,25 @@
 # repeat).
 
 def play(starting, turns)
-  collection = Hash(Int32,Array(Int32)).new
-  numbers = starting.map_with_index{ |v,t| collection[v] = [t + 1]}
-  numbers = starting.reverse
+  collection = Hash(Int32,Deque(Int32)).new
+  starting.map_with_index{ |v,t| collection[v] = Deque(Int32).new(1, t + 1)}
+  current_turn = starting.size
+  last_spoken = starting[-1]
 
-  (turns - numbers.size).times do |turn|
-    current_turn = starting.size + turn + 1
-    current = collection[numbers[0]]
+  (turns - starting.size).times do
+    current_turn += 1
+    current = collection[last_spoken]
 
     if current.size == 1
-      numbers.unshift(0)
+      last_spoken = 0
       collection[0] << current_turn
     else
-      age = current[-1] - current[-2]
-      numbers.unshift(age)
-      collection[age] ||= Array(Int32).new
-      collection[age] << current_turn
+      last_spoken = current[-1] - current[-2]
+      collection[last_spoken] ||= Deque(Int32).new
+      collection[last_spoken] << current_turn
     end
   end
-  numbers[0]
+  last_spoken
 end
 
 puts play [0,3,6], 10

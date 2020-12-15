@@ -13,24 +13,24 @@
 
 def play starting, turns
   collection = {}
-  numbers = starting.map.with_index{ |v,t| collection[v] = [t + 1]}
-  numbers = starting.reverse
+  starting.map.with_index{ |v,t| collection[v] = [t + 1]}
+  current_turn = starting.size
+  last_spoken = starting[-1]
 
-  (turns - numbers.size).times do |turn|
-    current_turn = starting.size + turn + 1
-    current = collection[numbers[0]]
+  (turns - starting.size).times do
+    current_turn += 1
+    current = collection[last_spoken]
 
     if current.size == 1
-      numbers.unshift(0)
+      last_spoken = 0
       collection[0] << current_turn
     else
-      age = current[-1] - current[-2]
-      numbers.unshift(age)
-      collection[age] ||= []
-      collection[age] << current_turn
+      last_spoken = current[-1] - current[-2]
+      collection[last_spoken] ||= []
+      collection[last_spoken] << current_turn
     end
   end
-  numbers[0]
+  last_spoken
 end
 
 puts play [0,3,6], 10
