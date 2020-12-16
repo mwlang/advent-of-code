@@ -12,18 +12,15 @@
 # repeat).
 
 def play starting, turns
-  collection = {}
-  starting.map.with_index{ |v,t| collection[v] = [t + 1]}
+  collection = starting.map.with_index{|spoken, index| [spoken, [index + 1]]}.to_h
   current_turn = starting.size
   last_spoken = starting[-1]
 
-  (turns - starting.size).times do
-    current_turn += 1
+  (starting.size + 1..turns).each do |current_turn|
     current = collection[last_spoken]
 
-    if current.size == 1
-      last_spoken = 0
-      collection[0] << current_turn
+    if current.one?
+      collection[last_spoken = 0] << current_turn
     else
       last_spoken = current[-1] - current[-2]
       collection[last_spoken] ||= []
@@ -33,7 +30,18 @@ def play starting, turns
   last_spoken
 end
 
-puts play [0,3,6], 10
-puts play [2,20,0,4,1,17], 2020
-puts play [2,20,0,4,1,17], 30_000_000
+require "benchmark"
 
+results = []
+Benchmark.bm do |x|
+  x.report("Ruby") do
+    results << play([0,3,6], 10)
+    results << play([2,20,0,4,1,17], 2020)
+    results << play([2,20,0,4,1,17], 30_000_000)
+  end
+end
+puts results
+
+#               user     system      total        real
+# Crystal   5.237146   0.157783   5.394929 (  5.162842)
+# Ruby     29.513222   0.304294  29.817516 ( 29.821905)
