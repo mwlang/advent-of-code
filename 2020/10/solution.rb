@@ -27,7 +27,7 @@ class Adapter
   def << adapter
     return unless compatible? adapter
     @compatible << adapter
-  end 
+  end
 end
 
 require "benchmark"
