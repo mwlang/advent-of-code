@@ -41,7 +41,7 @@ class NorthPoleStrictPassport < NorthPolePassport
   def valid_issue_year?
     @attributes["iyr"].to_i.between? 2010, 2020
   end
-  
+
   # eyr (Expiration Year) - four digits; at least 2020 and at most 2030.
   def valid_expiration_year?
     @attributes["eyr"].to_i.between? 2020, 2030
@@ -77,7 +77,7 @@ class NorthPoleStrictPassport < NorthPolePassport
   # cid (Country ID) - ignored, missing or not.
 
   def valid?
-    all_fields_present? && [ 
+    all_fields_present? && [
       valid_birth_year?,
       valid_issue_year?,
       valid_expiration_year?,
@@ -109,7 +109,7 @@ end
 
 def valid_passports checkpoint, passport_class
   passports = load_passports passport_class
-  count = passports.reduce(0){|count, p| p.valid? ? count + 1 : count}  
+  count = passports.reduce(0){|count, p| p.valid? ? count + 1 : count}
   puts "#{checkpoint}: #{count}"
 end
 
