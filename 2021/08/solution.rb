@@ -1,21 +1,3 @@
-#   0:      1:      2:      3:      4:
-#  aaaa    ....    aaaa    aaaa    ....
-# b    c  .    c  .    c  .    c  b    c
-# b    c  .    c  .    c  .    c  b    c
-#  ....    ....    dddd    dddd    dddd
-# e    f  .    f  e    .  .    f  .    f
-# e    f  .    f  e    .  .    f  .    f
-#  gggg    ....    gggg    gggg    ....
-
-#   5:      6:      7:      8:      9:
-#  aaaa    aaaa    aaaa    aaaa    aaaa
-# b    .  b    .  .    c  b    c  b    c
-# b    .  b    .  .    c  b    c  b    c
-#  dddd    dddd    ....    dddd    dddd
-# .    f  e    f  .    f  e    f  .    f
-# .    f  e    f  .    f  e    f  .    f
-#  gggg    gggg    ....    gggg    gggg
-
 require 'set'
 
 SEGMENTS = %i(a b c d e f g).freeze
@@ -25,13 +7,13 @@ SEGMENT_MAP = {
   4 => %i(b c d f),
   8 => %i(a b c d e f g),
 
-  2 => %i(a c d e g),
   3 => %i(a c d f g),
   5 => %i(a b d f g),
+  2 => %i(a c d e g),
 
+  9 => %i(a b c d f g),
   0 => %i(a b c e f g),
   6 => %i(a b d e f g),
-  9 => %i(a b c d f g),
 }.freeze
 VALUE_MAP = SEGMENT_MAP.invert.freeze
 
@@ -88,24 +70,8 @@ class Display
     decrypt
   end
 
-  def deduce(segment, values, decoder)
-    stuff = values.map{|v| SEGMENT_MAP[v].flat_map{|m| decoder[m]}}.reduce(&:-)
-    decoder[segment] = stuff
-  end
-
-  def earmark(value, decoder)
-    require 'ruby_jard'; jard
-    signals.select{|s| s.value.nil? && s.length == SEGMENT_MAP[value].size}
-
-    segments = decoder.select{ |segment| SEGMENT_MAP[value].include? segment }
-    signals.select{|sig| sig.length == segments.size}.each do |signal|
-      puts signal
-    end
-  end
-
   def spot(value, containing, decoder)
     containing = Array(containing)
-    decoded = Set.new(containing.flat_map{|c| decoder[c].to_a})
     (signals + output)
       .select{ |s| s.value.nil? && s.length == SEGMENT_MAP[value].size }
       .select{ |s| containing.all?{ |c| s.wires & decoder[c] == decoder[c] } }
@@ -113,7 +79,7 @@ class Display
   end
 
   def decrypt
-    @decoder = SEGMENTS.map{|i| [i, Set.new(SEGMENTS)]}.to_h
+    @decoder = Hash[SEGMENTS.map{|i| [i, Set.new(SEGMENTS)]}]
     (signals + output).select{ |d| d.length == 2 }.each{ |d| d.assign 1, decoder }
     (signals + output).select{ |d| d.length == 3 }.each{ |d| d.assign 7, decoder }
     (signals + output).select{ |d| d.length == 4 }.each{ |d| d.assign 4, decoder }
@@ -137,9 +103,6 @@ puts "=" * 40, "PART I", ""
 pp displays.flat_map{|display| display.output.select{|s| s.value}}.size
 
 puts "=" * 40, "PART II", ""
-displays.each do |display|
-  puts display.value
-end
+puts displays.map(&:value).join(", "), ""
 
 puts displays.reduce(0){ |sum, display| sum + display.value }
-
