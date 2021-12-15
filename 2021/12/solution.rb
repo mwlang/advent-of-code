@@ -24,34 +24,30 @@ class Cavern
     @name = name
     @neighbors = []
   end
-  def big?
-    @big ||= @name =~ /[A-Z]+/
-  end
-  def small?
-    !big?
-  end
-  def ending?
-    @name == "end"
-  end
-  def starting?
-    @name == "start"
-  end
+
+  def big?; @big ||= !!(@name =~ /[A-Z]+/) end
+  def small?; !big? end
+  def ending?; @name == "end" end
+  def starting?; @name == "start" end
+
   def <<(neighbor)
     @neighbors << neighbor unless @neighbors.include?(neighbor)
   end
+
   def inspect
     "#{@name}#{big? ? '!' : ''} (#{@neighbors.map(&:name).join(",")})"
   end
 end
-
 class Underground
   attr_reader :tunnels
   attr_reader :caverns
+
   def initialize tunnels
     @tunnels = tunnels
     @caverns = {}
     build_caverns
   end
+
   def build_caverns
     tunnels.each do |tunnel|
       cavern = @caverns[tunnel.name] ||= Cavern.new(tunnel.name)
@@ -60,50 +56,36 @@ class Underground
       neighbor << cavern
     end
   end
-  def explore!
-    trips = 0
-    paths = Set.new
 
-    cavern_path = [caverns["start"], Array(caverns["start"])]
-    visited = []
-    openings = caverns["start"].neighbors.map{ |neighbor| [neighbor, Array(caverns["start"])] }
+  def can_visit?(cavern, path, max_visits)
+    return true if cavern.big?
+    small_caverns = path.select(&:small?).tally
+    small_caverns.values.max < max_visits || !small_caverns.include?(cavern)
+  end
 
-    while !openings.empty? do
+  def explore! max_small_visits: 1
+    paths = caverns["start"].neighbors.map{|neighbor| [caverns["start"], neighbor]}
+    completed_paths = Set.new
 
-      opening, path = openings.shift
+    while path = paths.pop
+      completed_paths << path and next if path.last.ending?
 
-      opening_path = path + [opening]
-      paths << opening_path
-      # puts opening_path.inspect
-
-      next if opening.ending? || visited.include?([opening, opening_path])
-      visited << [opening, opening_path] unless opening.big?
-      opening.neighbors.each do |cavern|
-        next if visited.include?([cavern, opening_path])
-        next if path.include?(cavern) && cavern.small?
-        openings << [cavern, opening_path] unless visited.include?([cavern, opening_path])
+      path.last.neighbors.reject(&:starting?).each do |next_cavern|
+        next unless can_visit?(next_cavern, path, max_small_visits)
+        paths << path + [next_cavern]
       end
     end
-    start_end_paths = paths
-      .select{ |path| path.last.ending? }
-      .map{ |path| path.map(&:name).join(",") }
 
-    pp start_end_paths
-    puts start_end_paths.size
-
-    puts "*" * 40
-
-    valid_paths = paths
-      .select{ |path| path.last.ending? }
-      .reject do |openings|
-        openings.group_by(&:itself).any?{|cavern, visits| !cavern.big? && visits.size > 1}
-      end
-      .map{ |path| path.map(&:name).join(",") }
-    pp valid_paths.sort
-    puts valid_paths.size
+    completed_paths
   end
 end
 
 underground = Underground.new(tunnels)
-underground.explore!
-# pp underground.caverns
+
+puts "*" * 40, "PART I", ""
+completed_paths = underground.explore!
+puts completed_paths.size
+
+puts "*" * 40, "PART II", ""
+completed_paths = underground.explore! max_small_visits: 2
+puts completed_paths.size
