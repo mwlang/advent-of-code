@@ -47,12 +47,14 @@ class Tree
   end
 
   def check_scenery(a, b)
-    line_of_sight = (a..b).map{ |delta| yield(delta).height }
+    return 0 unless forest.cover?(a) && forest.cover?(b)
+
+    line_of_sight = ([a, b].min..[a, b].max).map{ |delta| yield(delta).height }
     return 0 if line_of_sight.empty?
 
-    i = line_of_sight.index { |h| h >= height }
-
-    i.nil? ? 1 : i + 1
+    line_of_sight.reverse! if a > b
+    answer = (line_of_sight.index{ |h| h >= height } || (line_of_sight.count - 1)) + 1
+    answer
   end
 
   def scenery_horizontally
@@ -60,22 +62,22 @@ class Tree
   end
 
   def scenery_vertically
-    scenery_top * scenery_bottom
+    scenery_up * scenery_down
   end
 
   def scenery_left
-    check_scenery(0, x - 1) { |delta| forest.trees[y][delta] }
+    check_scenery(x - 1, 0) { |delta| forest.trees[y][delta] }
   end
 
   def scenery_right
     check_scenery(x + 1, forest.width - 1) { |delta| forest.trees[y][delta] }
   end
 
-  def scenery_top
-    check_scenery(0, y - 1) { |delta| forest.trees[delta][x] }
+  def scenery_up
+    check_scenery(y - 1, 0) { |delta| forest.trees[delta][x] }
   end
 
-  def scenery_bottom
+  def scenery_down
     check_scenery(y + 1, forest.height - 1) { |delta| forest.trees[delta][x] }
   end
 
@@ -110,9 +112,7 @@ class Tree
   end
 
   def inspect
-    # "<T[#{x},#{y}] #{height}/#{visible? ? 't' : 'f'}>"
-    # "#{height}:#{visible? ? 'T' : '_'}"
-    "#{height}:#{scenery_top}:#{scenery_left}:#{scenery_right}:#{scenery_bottom}"
+    "<T[#{x},#{y}] #{height}/#{visible? ? 't' : 'f'}>"
   end
 
   def introduce_neighbors forest
@@ -133,10 +133,8 @@ forest = Forest.new do
   end
 end
 
-# pp forest.trees[2][2].visible?
-pp forest.trees
-
+print "PART 1: "
 puts forest.visible_trees
 
-# 1373 too low
-pp forest.trees.flatten.map{ |tree| s = tree.scenery; puts "#{s}:[#{tree.y},#{tree.x}]" }.max
+print "PART 2: "
+puts forest.trees.flatten.map(&:scenery).max
