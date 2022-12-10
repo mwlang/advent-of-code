@@ -1,14 +1,24 @@
 data = File.read('input.txt').split("\n").map{ |line| line.split(" ") }
 
-pp data
+ORTHOGONAL_DIRECTIONS = [[0, 1], [0, -1], [1, 0], [-1, 0]].freeze
+DIAGONAL_DIRECTIONS = [[1, 1], [1, -1], [-1, -1], [-1, 1]].freeze
 
+MOVEMENTS = {
+  'R' => {dx:  1,  dy:  0},
+  'L' => {dx: -1,  dy:  0},
+  'U' => {dx:  0,  dy:  1},
+  'D' => {dx:  0,  dy: -1},
+}
 class Point
   attr_reader :x, :y
   attr_reader :visited
 
-  def initialize(x, y)
-    @x = x
-    @y = y
+  def initialize
+    @x = 0
+    @y = 0
+  end
+
+  def track_visits!
     @visited = [position]
   end
 
@@ -17,7 +27,8 @@ class Point
   end
 
   def track!
-    return if visited.include? position
+    return unless @visited
+    return if @visited.include? position
 
     visited << position
   end
@@ -28,31 +39,8 @@ class Point
     track!
   end
 
-  def follow(point)
-    return if adjacent?(point)
-    return follow_horizontally(point) if would_be_adjacent?(point, dy: point.y <=> y)
-    return follow_vertically(point) if would_be_adjacent?(point, dx: point.x <=> x)
-  end
-
-  def would_be_adjacent?(point, dx: 0, dy: 0)
-    require 'ruby_jard'; jard
-    adjacent?(point, x: @x + dx, y: @y + dy)
-  end
-
   def adjacent?(point, x: @x, y: @y)
     (point.x - x).abs <= 1 && (point.y - y).abs <= 1
-  end
-
-  def follow_horizontally(point)
-    dx = point.x <=> @x
-    @x += dx
-    track!
-  end
-
-  def follow_vertically(point)
-    dy = point.y <=> @y
-    @y += dy
-    track!
   end
 end
 
@@ -60,58 +48,92 @@ class Head < Point
 end
 
 class Tail < Point
+  def follow(point)
+    return if adjacent?(point)
+
+    (point.x - x).abs + (point.y - y).abs > 2 ? follow_diagonally(point) : follow_othogonally(point);
+  end
+
+  def follow_diagonally(point)
+    DIAGONAL_DIRECTIONS.each do |dx, dy|
+      next unless adjacent?(point, x: @x + dx, y: @y + dy)
+
+      move dx: dx, dy: dy
+      break
+    end
+  end
+
+  def follow_othogonally(point)
+    ORTHOGONAL_DIRECTIONS.each do |dx, dy|
+      next unless adjacent?(point, x: @x + dx, y: @y + dy)
+
+      move dx: dx, dy: dy
+      break
+    end
+  end
 end
 
+class Knot < Tail
+  attr_accessor :head
+
+  def follow
+    super(@head)
+  end
+end
 class Rope
   attr_reader :head, :tail
 
-  def initialize(x:, y:)
-    @head = Head.new(x, y)
-    @tail = Tail.new(x, y)
-    tail.track!
+  def initialize
+    @head = Head.new
+    @tail = Tail.new
+    tail.track_visits!
   end
 
   def move(steps:, dx:, dy:)
     steps.times.each do
       head.move(dx: dx, dy: dy)
-      tail.follow(head)
-    end
-  end
-end
-
-require 'rspec'
-
-RSpec.describe Point do
-  let(:head_x) { 0 }
-  let(:head_y) { 0 }
-  let(:tail_x) { 0 }
-  let(:tail_y) { 0 }
-
-  let(:head) { Head.new(head_x, head_y) }
-  let(:tail) { Tail.new(tail_x, tail_y) }
-
-  subject { head }
-
-  context "#would_be_adjacent?" do
-    [
-      [0, 2, 1, 0, true],
-      [2, 0, 0, 1, true],
-    ].each do |x, y, dx, dy, expected|
-      it "head at [#{x}, #{y}] and moving by [#{dx}, #{dy}]" do
-        head = Head.new(x, y)
-        expect(tail.would_be_adjacent?(head, dx: dx, dy: dy)).to eq expected
-      end
+      follow
     end
   end
 
-  context "#would_be_adjacent" do
+  def follow
+    tail.follow(head)
   end
 end
 
-# rope = Rope.new(x: 0, y: 0)
+def waggle rope, data
+  data.each{ |direction, steps| rope.move(steps: steps.to_i, **MOVEMENTS[direction]) }
+  puts rope.tail.visited.uniq.size
+end
 
-# rope.move(steps: 4, dx: 1, dy: 0)
-# rope.move(steps: 1, dx: 0, dy: 1)
-# rope.move(steps: 4, dx: -1, dy: 0)
-# pp rope.tail.visited.uniq
+print "PART 1: "
+waggle Rope.new, data
 
+class BigRope < Rope
+  attr_reader :knots
+
+  def initialize
+    @head = Head.new
+    @knots = []
+    build_knots(9)
+    tail.track_visits!
+  end
+
+  def tail
+    @knots[-1]
+  end
+
+  def build_knots count
+    return if count.zero?
+
+    @knots << Knot.new.tap{ |knot| knot.head = (tail || head) }
+    build_knots count - 1
+  end
+
+  def follow
+    knots.each(&:follow)
+  end
+end
+
+print "PART 2: "
+waggle BigRope.new, data
