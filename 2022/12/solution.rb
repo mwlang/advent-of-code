@@ -10,11 +10,35 @@ class Hills
   def initialize
     @elevations = yield
     elevations.flatten.each{ |elevation| elevation.introduce_neighbors(self) }
-    @paths = Set.new
+    @paths = []
   end
 
   def shortest_path
     paths.sort_by{ |path| path.count }.first || []
+  end
+
+  def climb(trail, distance = 1)
+    return if trail.empty?
+
+    trail.each do |hill|
+      return distance if hill.possible_paths.detect(&:highest?)
+      hill.visited!
+      trail += hill.possible_paths
+    end
+
+    climb(trail.uniq, distance + 1)
+  end
+
+  def descend(trail, distance = 1)
+    return if trail.empty?
+
+    trail.each do |hill|
+      return distance if hill.possible_down_paths.detect(&:lowest?)
+      hill.visited!
+      trail += hill.possible_down_paths
+    end
+
+    descend(trail.uniq, distance + 1)
   end
 
   def width
@@ -26,7 +50,7 @@ class Hills
   end
 
   def cover? y, x
-    (0..width-1).include?(y) && (0..height-1).include?(x)
+    (0..width - 1).include?(y) && (0..height - 1).include?(x)
   end
 end
 
@@ -42,11 +66,23 @@ class Elevation
     @x = x
     @y = y
     @neighbors = []
-    @paths = Set.new
+    @visited = false
+  end
+
+  def visited?
+    @visited
+  end
+
+  def visited!
+    @visited = true
   end
 
   def start?
     elevation.zero?
+  end
+
+  def lowest?
+    elevation <= ELEVATIONS.index('a')
   end
 
   def highest?
@@ -58,20 +94,16 @@ class Elevation
   end
 
   def possible_paths
-    @possible_paths ||= highest? ? [] : neighbors.select { |n| [elevation, elevation + 1].include? n.elevation }
+    neighbors.select { |n| (n.elevation - elevation) < 2 }.reject(&:visited?)
   end
 
-  def finished!(breadcrumbs)
+  def possible_down_paths
+    neighbors.select { |n| (elevation - n.elevation) < 2 }.reject(&:visited?)
+  end
+
+  def finished! breadcrumbs
     hills.paths << (breadcrumbs.dup << self)
-  end
-
-  def climb(breadcrumbs)
-    return finished!(breadcrumbs) if highest?
-    return if breadcrumbs.include?(self) || @paths.include?(breadcrumbs)
-    return if !@paths.empty? && @paths.map(&:size).max <= breadcrumbs.size
-
-    @paths << breadcrumbs
-    possible_paths.each { |path| path.climb(breadcrumbs.dup << self) }
+    puts breadcrumbs.size
   end
 
   def introduce_neighbors hills
@@ -93,14 +125,9 @@ hills = Hills.new do
 end
 
 print "PART 1: "
-pp hills.elevations
-
 start = hills.elevations.flatten.find{ |e| e.elevation.zero? }
-pp start
-pp start.possible_paths
+puts hills.climb([start])
 
-breadcrumbs = start.climb(Set.new)
-
-puts "just making sure I get here through the jard of a yard of a bard for lard and marge"
-puts [hills.shortest_path.size, hills.shortest_path.map{ |bc| bc.inspect }.join(", ")].join(':')
-puts "PART 1: #{hills.shortest_path.size - 1}"
+print "PART 2: "
+highest = hills.elevations.flatten.find(&:highest?)
+puts hills.descend([highest])
