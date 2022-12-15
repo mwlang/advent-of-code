@@ -3,25 +3,21 @@ require 'set'
 data = File.read('input.txt').split("\n").map { |line| line.chars }
 
 NEIGHBORS = [[0, 1], [0, -1], [1, 0], [-1, 0]]
-
+CLIMBING_ELEVATIONS = ['S', ('a'..'z').to_a, 'E'].flatten.freeze
+DESCENDING_ELEVATIONS = CLIMBING_ELEVATIONS.reverse.freeze
 class Hills
-  attr_reader :elevations, :paths
+  attr_reader :elevations
 
   def initialize
     @elevations = yield
-    elevations.flatten.each{ |elevation| elevation.introduce_neighbors(self) }
-    @paths = []
-  end
-
-  def shortest_path
-    paths.sort_by{ |path| path.count }.first || []
+    elevations.flatten.each { |elevation| elevation.introduce_neighbors(self) }
   end
 
   def climb(trail, distance = 1)
     return if trail.empty?
 
     trail.each do |hill|
-      return distance if hill.possible_paths.detect(&:highest?)
+      return distance if hill.possible_paths.detect(&:finish?)
       hill.visited!
       trail += hill.possible_paths
     end
@@ -29,24 +25,12 @@ class Hills
     climb(trail.uniq, distance + 1)
   end
 
-  def descend(trail, distance = 1)
-    return if trail.empty?
-
-    trail.each do |hill|
-      return distance if hill.possible_down_paths.detect(&:lowest?)
-      hill.visited!
-      trail += hill.possible_down_paths
-    end
-
-    descend(trail.uniq, distance + 1)
-  end
-
   def width
-    @elevations.count
+    @elevations.size
   end
 
   def height
-    @elevations.first.count
+    @elevations.first.size
   end
 
   def cover? y, x
@@ -58,11 +42,12 @@ class Elevation
   attr_reader :hills, :neighbors
   attr_reader :x, :y
   attr_reader :elevation
+  attr_reader :legend
 
-  ELEVATIONS = ['S', ('a'..'z').to_a, 'E'].flatten.freeze
 
-  def initialize elevation, x, y
-    @elevation = ELEVATIONS.index(elevation)
+  def initialize elevation, x, y, legend
+    @legend = legend
+    @elevation = legend.index(elevation)
     @x = x
     @y = y
     @neighbors = []
@@ -81,29 +66,24 @@ class Elevation
     elevation.zero?
   end
 
-  def lowest?
-    elevation <= ELEVATIONS.index('a')
+  def finish_points
+    legend[0] == 'E' ? 2 : 1
   end
 
-  def highest?
-    elevation == ELEVATIONS.size - 1
+  def finish?
+    elevation >= legend.size - finish_points
   end
 
   def inspect
-    "[#{x},#{y}]:#{ELEVATIONS[elevation]}"
+    "[#{x},#{y}]:#{legend[elevation]}"
   end
 
   def possible_paths
     neighbors.select { |n| (n.elevation - elevation) < 2 }.reject(&:visited?)
   end
 
-  def possible_down_paths
-    neighbors.select { |n| (elevation - n.elevation) < 2 }.reject(&:visited?)
-  end
-
   def finished! breadcrumbs
-    hills.paths << (breadcrumbs.dup << self)
-    puts breadcrumbs.size
+    puts (breadcrumbs << self).size
   end
 
   def introduce_neighbors hills
@@ -116,18 +96,22 @@ class Elevation
   end
 end
 
-hills = Hills.new do
-  data.map.with_index do |row, y|
-    row.map.with_index do |elevation, x|
-      Elevation.new(elevation, x, y)
+def read_the_map(data, legend)
+  Hills.new do
+    data.map.with_index do |row, y|
+      row.map.with_index do |elevation, x|
+        Elevation.new(elevation, x, y, legend)
+      end
     end
   end
 end
 
 print "PART 1: "
+hills = read_the_map(data, CLIMBING_ELEVATIONS)
 start = hills.elevations.flatten.find{ |e| e.elevation.zero? }
 puts hills.climb([start])
 
 print "PART 2: "
-highest = hills.elevations.flatten.find(&:highest?)
-puts hills.descend([highest])
+hills = read_the_map(data, DESCENDING_ELEVATIONS)
+start = hills.elevations.flatten.find{ |e| e.elevation.zero? }
+puts hills.climb([start])
