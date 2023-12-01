@@ -45,8 +45,10 @@ end
 
 lines = File.read('input.txt').split("\n")
 
+print 'PART 1: '
 data = lines.map { |line| Digitizer.new(line) }
 puts data.reduce(0){ |sum, digit| sum + digit.value }
 
+print 'PART 2: '
 data = lines.map{ |line| Despeller.new(line) }.map{ |line| Digitizer.new(line) }
 puts data.reduce(0){ |sum, digit| sum + digit.value }
