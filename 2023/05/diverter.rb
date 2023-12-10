@@ -1,5 +1,6 @@
 class Diverter
   attr_reader :source_range, :offset
+
   def initialize(source_range, offset)
     @source_range = source_range
     @offset = offset
@@ -14,6 +15,15 @@ class Diverter
     return diverted(diverted: adjust(range)) if covers?(range)
     return diverted(undiverted: range) unless overlaps?(range)
     return split(range)
+  end
+
+  def overlaps?(range)
+    range.bsearch{ |seed| source_range.include?(seed) } ||
+    source_range.bsearch{ |seed| range.include?(seed) }
+  end
+
+  def covers?(range)
+    source_range.cover?(range)
   end
 
   def split(range)
@@ -61,14 +71,5 @@ class Diverter
     return range if range.is_a?(Range)
     return (range..range) if range.is_a?(Integer)
     raise "Invalid range: #{range}"
-  end
-
-  def overlaps?(range)
-    return true if source_range.bsearch{ |seed| range.include?(seed) }
-    source_range.include?(range.min) || source_range.include?(range.max)
-  end
-
-  def covers?(range)
-    source_range.min <= range.min && source_range.max >= range.max
   end
 end
